@@ -39,9 +39,27 @@
 
 #define NR_OF_READERS   3
 
+#define NUM_ITEMS       3   //set number of tracked items
+
 byte ssPins[] = {SS_1_PIN, SS_2_PIN, SS_3_PIN};
 
 MFRC522 mfrc522[NR_OF_READERS];   // Create MFRC522 instance.
+
+
+//create struct to hold information for individual tracked items
+struct itemID {
+  byte idArray[4];
+  uint8_t itemLocation; // reader number
+};
+
+//set tag UIDs here
+//default value for location is set to 255 (indicates not in inventory)
+itemID items[NUM_ITEMS] = 
+{
+  {{0x4B, 0x17, 0xBC, 0x79}, 255},
+  {{0x00, 0x00, 0x00, 0x00}, 255},
+  {{0x00, 0x00, 0x00, 0x00}, 255}
+};
 
 /**
  * Initialize.
@@ -55,10 +73,25 @@ void setup() {
 
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN); // Init each MFRC522 card
+
+    delay(4); //wait to establish connection
+
     Serial.print(F("Reader "));
     Serial.print(reader);
     Serial.print(F(": "));
     mfrc522[reader].PCD_DumpVersionToSerial();
+  }
+
+  //Print item struct data
+  for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
+  {
+    for (uint8_t i = 0; i < 4; i++)
+    {
+      Serial.print(items[itemNumber].idArray[i]);
+      Serial.print(" ");
+    }
+    Serial.print(items[itemNumber].itemLocation);
+    Serial.println();
   }
 }
 
