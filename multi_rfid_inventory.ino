@@ -56,10 +56,15 @@ struct itemID {
 //default value for location is set to 255 (indicates not in inventory)
 itemID items[NUM_ITEMS] = 
 {
-  {{0x4B, 0x17, 0xBC, 0x79}, 255},
-  {{0x00, 0x00, 0x00, 0x00}, 255},
-  {{0x00, 0x00, 0x00, 0x00}, 255}
+  {{0x5A, 0xF0, 0x93, 0xBB}, 255},
+  {{0x4A, 0xF0, 0x93, 0xBB}, 255},
+  {{0x3A, 0xF0, 0x93, 0xBB}, 255}
 };
+
+//set checking variables
+uint8_t foundReader = 255;
+uint8_t foundItem = 255;
+bool itemFound = false;
 
 /**
  * Initialize.
@@ -74,13 +79,15 @@ void setup() {
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN); // Init each MFRC522 card
 
-    delay(4); //wait to establish connection
+    delay(10); //wait to establish connection
 
     Serial.print(F("Reader "));
     Serial.print(reader);
     Serial.print(F(": "));
     mfrc522[reader].PCD_DumpVersionToSerial();
   }
+
+
 
   //Print item struct data
   for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
@@ -99,20 +106,37 @@ void setup() {
  * Main loop.
  */
 void loop() {
+  itemFound = false;
 
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     // Look for new cards
 
     if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
-      Serial.print(F("Reader "));
-      Serial.print(reader);
-      // Show some details of the PICC (that is: the tag/card)
-      Serial.print(F(": Card UID:"));
-      dump_byte_array(mfrc522[reader].uid.uidByte, mfrc522[reader].uid.size);
+      // Serial.print(F("Reader "));
+      // Serial.print(reader);
+      // // Show some details of the PICC (that is: the tag/card)
+      // Serial.print(F(": Card UID:"));
+      // dump_byte_array(mfrc522[reader].uid.uidByte, mfrc522[reader].uid.size);
+
+    //match read ID with inventory id
+    for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
+    {
+      for (uint8_t i = 0; i < 4; i++)
+      {
+        if(items[itemNumber].idArray[i] != mfrc522[reader].uid.uidByte[i])
+        {
+          break;
+        }
+        else
+        {
+          if (i ==  mfrc522[reader].uid.size - 1)
+          foundReader = reader;
+          foundItem = itemNumber;
+          itemFound = true;
+        }
+      }
+    }
       Serial.println();
-      Serial.print(F("PICC type: "));
-      MFRC522::PICC_Type piccType = mfrc522[reader].PICC_GetType(mfrc522[reader].uid.sak);
-      Serial.println(mfrc522[reader].PICC_GetTypeName(piccType));
 
       // Halt PICC
       mfrc522[reader].PICC_HaltA();
@@ -120,6 +144,17 @@ void loop() {
       mfrc522[reader].PCD_StopCrypto1();
     } //if (mfrc522[reader].PICC_IsNewC
   } //for(uint8_t reader
+
+  if(itemFound == true)
+  {  
+    Serial.print(F("Item number "));
+    Serial.print(foundItem);
+    Serial.print(F(" Found on Reader "));
+    Serial.print(foundReader);
+    Serial.println();
+
+  }
+
 }
 
 
@@ -128,7 +163,9 @@ void loop() {
  */
 void dump_byte_array(byte *buffer, byte bufferSize) {
   for (byte i = 0; i < bufferSize; i++) {
-    Serial.print(buffer[i] < 0x10 ? " 0" : " ");
+    // Serial.print(buffer[i] < 0x10 ? " 0" : " ");
+    // Serial.print(buffer[i], HEX);
     Serial.print(buffer[i], HEX);
+    Serial.print(" ");
   }
 }
