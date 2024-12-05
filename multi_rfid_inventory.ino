@@ -81,7 +81,7 @@ void setup() {
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN); // Init each MFRC522 card
 
-    delay(10); //wait to establish connection
+    delay(20); //wait to establish connection
 
     Serial.print(F("Reader "));
     Serial.print(reader);
@@ -145,13 +145,36 @@ void loop() {
 void processFoundItem()
 {
   itemFound = false;
-  Serial.print(F("Item number "));
-  Serial.print(foundItem);
-  Serial.print(F(" Found on Reader "));
-  Serial.print(foundReader);
+  
 
   //update item location entry
-  items[foundItem].itemLocation = foundReader;
+  if(items[foundItem].itemLocation == 255)//update item location if current status is "out"
+  {
+    items[foundItem].itemLocation = foundReader;    
+    Serial.print(F("Item #"));
+    Serial.print(foundItem);
+    Serial.print(F(" has been successfully tracked in location #"));
+    Serial.print(foundReader);
+    Serial.print('\n');
+  } 
+  else if (items[foundItem].itemLocation == foundReader) //change item location to "out" if current location matches reader location
+  {
+    items[foundItem].itemLocation = 255;
+    Serial.print(F("Item #"));
+    Serial.print(foundItem);
+    Serial.print(F(" has been removed from location #"));
+    Serial.print(foundReader);
+    Serial.print('\n');
+  }
+  else //unexpected location read
+  {
+    items[foundItem].itemLocation = 255;
+    Serial.print("Item tracking error. Item #");
+    Serial.print(foundItem);
+    Serial.print(" status reset to 'not in inventory'.");
+    Serial.println("Please try again");
+  }
+  
 }
 
 /**
@@ -182,9 +205,16 @@ void printInventory()
   {
     Serial.print(F("Item number "));
     Serial.print(itemNumber);
-    Serial.print(F(" is in container number "));
-    Serial.print(items[itemNumber].itemLocation);
-    Serial.println();
+    if (items[itemNumber].itemLocation == 255)
+    {
+      Serial.println(" is not in the container.");
+    } else
+    {
+      Serial.print(" is in container number ");
+      Serial.print(items[itemNumber].itemLocation);
+      Serial.println();
+    }
+
   }
 
 }
