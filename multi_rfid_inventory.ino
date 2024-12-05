@@ -131,8 +131,7 @@ void loop() {
     processFoundItem();
   }
 
-
-  //print updated inventory when 'p' is sent through serial monitor
+  //call serial control function when message is received from serial monitor
   while(Serial.available())
   {
     serialControl();
