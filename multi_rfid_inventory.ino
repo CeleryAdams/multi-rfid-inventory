@@ -66,6 +66,8 @@ uint8_t foundReader = 255;
 uint8_t foundItem = 255;
 bool itemFound = false;
 
+char serialMessage;
+
 /**
  * Initialize.
  */
@@ -86,37 +88,16 @@ void setup() {
     Serial.print(F(": "));
     mfrc522[reader].PCD_DumpVersionToSerial();
   }
-
-
-
-  //Print item struct data
-  for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
-  {
-    for (uint8_t i = 0; i < 4; i++)
-    {
-      Serial.print(items[itemNumber].idArray[i]);
-      Serial.print(" ");
-    }
-    Serial.print(items[itemNumber].itemLocation);
-    Serial.println();
-  }
 }
 
 /**
  * Main loop.
  */
 void loop() {
-  itemFound = false;
-
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     // Look for new cards
 
     if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
-      // Serial.print(F("Reader "));
-      // Serial.print(reader);
-      // // Show some details of the PICC (that is: the tag/card)
-      // Serial.print(F(": Card UID:"));
-      // dump_byte_array(mfrc522[reader].uid.uidByte, mfrc522[reader].uid.size);
 
     //match read ID with inventory id
     for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
@@ -145,18 +126,105 @@ void loop() {
     } //if (mfrc522[reader].PICC_IsNewC
   } //for(uint8_t reader
 
-  if(itemFound == true)
+  if(itemFound)
   {  
-    Serial.print(F("Item number "));
-    Serial.print(foundItem);
-    Serial.print(F(" Found on Reader "));
-    Serial.print(foundReader);
-    Serial.println();
+    processFoundItem();
+  }
 
+
+  //print updated inventory when 'p' is sent through serial monitor
+  while(Serial.available())
+  {
+    serialControl();
   }
 
 }
 
+/**
+ * function called when item found
+ */
+void processFoundItem()
+{
+  itemFound = false;
+  Serial.print(F("Item number "));
+  Serial.print(foundItem);
+  Serial.print(F(" Found on Reader "));
+  Serial.print(foundReader);
+
+  //update item location entry
+  items[foundItem].itemLocation = foundReader;
+}
+
+/**
+ * print the item inventory struct
+ */
+void printStruct()
+{
+  for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
+  {
+    for (uint8_t i = 0; i < 4; i++)
+    {
+      Serial.print(items[itemNumber].idArray[i]);
+      Serial.print(" ");
+    }
+    Serial.print(items[itemNumber].itemLocation);
+    Serial.println();
+  }
+}
+
+
+/**
+ * print formatted information about inventory status
+ */
+void printInventory()
+{
+  Serial.println();
+  for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
+  {
+    Serial.print(F("Item number "));
+    Serial.print(itemNumber);
+    Serial.print(F(" is in container number "));
+    Serial.print(items[itemNumber].itemLocation);
+    Serial.println();
+  }
+
+}
+
+/**
+ * resets inventory location to 255
+ */
+ void resetInventory()
+ {
+  for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
+  {
+    items[itemNumber].itemLocation = 255;
+  }
+  Serial.print("Inventory reset");
+ }
+
+
+/**
+ * process controls sent from serial monitor
+ */
+ void serialControl()
+ {
+    serialMessage = Serial.read();
+
+    if(serialMessage == 'p')
+    {
+      printStruct();
+    } 
+    
+    if (serialMessage == 'i')
+    {
+      printInventory();
+    }
+
+    if (serialMessage == 'r')
+    {
+      resetInventory();
+    }
+ }
 
 /**
  * Helper routine to dump a byte array as hex values to Serial.
@@ -169,3 +237,4 @@ void dump_byte_array(byte *buffer, byte bufferSize) {
     Serial.print(" ");
   }
 }
+
