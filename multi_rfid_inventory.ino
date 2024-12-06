@@ -32,10 +32,12 @@
 #include <SPI.h>
 #include <MFRC522.h>
 
-#define RST_PIN         9          // Configurable, see typical pin layout above
-#define SS_1_PIN        7         
-#define SS_2_PIN        8          
-#define SS_3_PIN        10          
+#define RST_PIN             9          // Configurable, see typical pin layout above
+#define SS_1_PIN            7         
+#define SS_2_PIN            8          
+#define SS_3_PIN            10
+#define red_LED_PIN         A4
+#define green_LED_PIN       A5   
 
 #define NR_OF_READERS   3
 
@@ -88,6 +90,9 @@ void setup() {
     Serial.print(F(": "));
     mfrc522[reader].PCD_DumpVersionToSerial();
   }
+
+  pinMode(red_LED_PIN, OUTPUT);
+  pinMode(green_LED_PIN, OUTPUT);
 }
 
 /**
@@ -156,6 +161,8 @@ void processFoundItem()
     Serial.print(F(" has been successfully tracked in location #"));
     Serial.print(foundReader);
     Serial.print('\n');
+
+    blinkLED(green_LED_PIN, 3, 600, 100);
   } 
   else if (items[foundItem].itemLocation == foundReader) //change item location to "out" if current location matches reader location
   {
@@ -165,14 +172,18 @@ void processFoundItem()
     Serial.print(F(" has been removed from location #"));
     Serial.print(foundReader);
     Serial.print('\n');
+
+    blinkLED(green_LED_PIN, 6, 100, 100);
   }
   else //unexpected location read
   {
     items[foundItem].itemLocation = 255;
     Serial.print("Item tracking error. Item #");
     Serial.print(foundItem);
-    Serial.print(" status reset to 'not in inventory'.");
+    Serial.print(" status reset to 'not in inventory'. ");
     Serial.println("Please try again");
+
+    blinkLED(red_LED_PIN, 3, 1200, 400);
   }
   
 }
@@ -254,6 +265,20 @@ void printInventory()
       resetInventory();
     }
  }
+
+/**
+ * blink a selected LED a specified number of times
+ */
+void blinkLED(uint8_t ledPin, uint8_t times, unsigned long timeOn, unsigned long timeOff)
+{
+  for(int i = 0; i < times; i++)
+  {
+    digitalWrite(ledPin, HIGH);
+    delay(timeOn);
+    digitalWrite(ledPin, LOW);  
+    delay(timeOff);  
+  }
+}
 
 /**
  * Helper routine to dump a byte array as hex values to Serial.
