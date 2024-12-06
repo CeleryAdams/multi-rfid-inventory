@@ -64,6 +64,7 @@ itemID items[NUM_ITEMS] =
 };
 
 //set checking variables
+bool tagRead = false;
 uint8_t foundReader = 255;
 uint8_t foundItem = 255;
 bool itemFound = false;
@@ -103,6 +104,8 @@ void loop() {
     // Look for new cards
 
     if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
+    
+    tagRead = true; //track if a tag has been read to compare to foundItem status
 
     //match read ID with inventory id
     for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
@@ -131,6 +134,11 @@ void loop() {
     } //if (mfrc522[reader].PICC_IsNewC
   } //for(uint8_t reader
 
+  if(tagRead == true && itemFound == false)
+  {
+    alertUnknownItem();
+  }
+
   if(itemFound)
   {  
     processFoundItem();
@@ -150,7 +158,7 @@ void loop() {
 void processFoundItem()
 {
   itemFound = false;
-  
+  tagRead = false;
 
   //update item location entry
   if(items[foundItem].itemLocation == 255)//update item location if current status is "out"
@@ -181,11 +189,23 @@ void processFoundItem()
     Serial.print("Item tracking error. Item #");
     Serial.print(foundItem);
     Serial.print(" status reset to 'not in inventory'. ");
+    Serial.println();
     Serial.println("Please try again");
 
-    blinkLED(red_LED_PIN, 3, 1200, 400);
+    blinkLED(red_LED_PIN, 3, 600, 200);
   }
   
+}
+
+/**
+  * error notification if unknown tag is scanned
+  */
+void alertUnknownItem()
+{
+  Serial.println("Unidentified item, please update inventory database");
+  tagRead = false;
+
+  blinkLED(red_LED_PIN, 6, 100, 100);
 }
 
 /**
