@@ -81,11 +81,14 @@ void setup() {
 
   SPI.begin();        // Init SPI bus
 
-  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+  
+  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {    
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN); // Init each MFRC522 card
 
-    delay(20); //wait to establish connection
+    delay(20); // wait to establish connection
 
+    mfrc522[reader].PCD_SetAntennaGain(mfrc522[reader].RxGain_max); // increase antenna gain
+    
     Serial.print(F("Reader "));
     Serial.print(reader);
     Serial.print(F(": "));
