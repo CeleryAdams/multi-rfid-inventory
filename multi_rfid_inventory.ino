@@ -141,7 +141,7 @@ void processFoundItem()
   {
     items[foundItem].itemLocation = foundReader;    
     Serial.print(items[foundItem].itemName);
-    Serial.print(F(" has been successfully tracked in location #"));
+    Serial.print(F(" has been successfully tracked in container #"));
     Serial.print(foundReader);
     Serial.print('\n');
 
@@ -151,7 +151,7 @@ void processFoundItem()
   {
     items[foundItem].itemLocation = 255;
     Serial.print(items[foundItem].itemName);
-    Serial.print(F(" has been removed from location #"));
+    Serial.print(F(" has been removed from container #"));
     Serial.print(foundReader);
     Serial.print('\n');
 
@@ -290,7 +290,6 @@ void printContainerContents(uint8_t containerNumber)
       case '2':
         printContainerContents(2);
         break;
-      
     }
  }
 
