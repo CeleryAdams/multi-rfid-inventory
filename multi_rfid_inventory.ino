@@ -43,6 +43,7 @@
 
 #define NUM_ITEMS       3   //set number of tracked items
 
+
 byte ssPins[] = {SS_1_PIN, SS_2_PIN, SS_3_PIN};
 
 MFRC522 mfrc522[NR_OF_READERS];   // Create MFRC522 instance.
@@ -52,15 +53,16 @@ MFRC522 mfrc522[NR_OF_READERS];   // Create MFRC522 instance.
 struct itemID {
   byte idArray[4];
   uint8_t itemLocation; // reader number
+  String itemName;
 };
 
 //set tag UIDs here
 //default value for location is set to 255 (indicates not in inventory)
 itemID items[NUM_ITEMS] = 
 {
-  {{0x5A, 0xF0, 0x93, 0xBB}, 255},
-  {{0x4A, 0xF0, 0x93, 0xBB}, 255},
-  {{0x3A, 0xF0, 0x93, 0xBB}, 255}
+  {{0x5A, 0xF0, 0x93, 0xBB}, 255, "Red Lego"},
+  {{0x4A, 0xF0, 0x93, 0xBB}, 255, "Pill Bottle"},
+  {{0x3A, 0xF0, 0x93, 0xBB}, 255, "Black Box"}
 };
 
 //set checking variables
@@ -68,7 +70,6 @@ bool tagRead = false;
 uint8_t foundReader = 255;
 uint8_t foundItem = 255;
 bool itemFound = false;
-
 char serialMessage;
 
 /**
@@ -95,6 +96,7 @@ void setup() {
     mfrc522[reader].PCD_DumpVersionToSerial();
   }
 
+  //LED setup
   pinMode(red_LED_PIN, OUTPUT);
   pinMode(green_LED_PIN, OUTPUT);
 }
@@ -167,8 +169,7 @@ void processFoundItem()
   if(items[foundItem].itemLocation == 255)//update item location if current status is "out"
   {
     items[foundItem].itemLocation = foundReader;    
-    Serial.print(F("Item #"));
-    Serial.print(foundItem);
+    Serial.print(items[foundItem].itemName);
     Serial.print(F(" has been successfully tracked in location #"));
     Serial.print(foundReader);
     Serial.print('\n');
@@ -178,8 +179,7 @@ void processFoundItem()
   else if (items[foundItem].itemLocation == foundReader) //change item location to "out" if current location matches reader location
   {
     items[foundItem].itemLocation = 255;
-    Serial.print(F("Item #"));
-    Serial.print(foundItem);
+    Serial.print(items[foundItem].itemName);
     Serial.print(F(" has been removed from location #"));
     Serial.print(foundReader);
     Serial.print('\n');
@@ -189,8 +189,8 @@ void processFoundItem()
   else //unexpected location read
   {
     items[foundItem].itemLocation = 255;
-    Serial.print("Item tracking error. Item #");
-    Serial.print(foundItem);
+    Serial.print("Item tracking error. ");
+    Serial.print(items[foundItem].itemName);
     Serial.print(" status reset to 'not in inventory'. ");
     Serial.println();
     Serial.println("Please try again");
@@ -237,8 +237,7 @@ void printInventory()
   Serial.println();
   for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
   {
-    Serial.print(F("Item number "));
-    Serial.print(itemNumber);
+    Serial.print(items[itemNumber].itemName);
     if (items[itemNumber].itemLocation == 255)
     {
       Serial.println(" is not in the container.");
@@ -286,6 +285,11 @@ void printInventory()
     if (serialMessage == 'r')
     {
       resetInventory();
+    }
+
+    if (serialMessage == 'R')
+    {
+       NVIC_SystemReset(); //system reset
     }
  }
 
