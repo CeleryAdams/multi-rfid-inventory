@@ -1,34 +1,3 @@
-/**
- * --------------------------------------------------------------------------------------------------------------------
- * Example sketch/program showing how to read data from more than one PICC to serial.
- * --------------------------------------------------------------------------------------------------------------------
- * This is a MFRC522 library example; for further details and other examples see: https://github.com/miguelbalboa/rfid
- *
- * Example sketch/program showing how to read data from more than one PICC (that is: a RFID Tag or Card) using a
- * MFRC522 based RFID Reader on the Arduino SPI interface.
- *
- * Warning: This may not work! Multiple devices at one SPI are difficult and cause many trouble!! Engineering skill
- *          and knowledge are required!
- *
- * @license Released into the public domain.
- *
- * Typical pin layout used:
- * -----------------------------------------------------------------------------------------
- *             MFRC522      Arduino       Arduino   Arduino    Arduino          Arduino
- *             Reader/PCD   Uno/101       Mega      Nano v3    Leonardo/Micro   Pro Micro
- * Signal      Pin          Pin           Pin       Pin        Pin              Pin
- * -----------------------------------------------------------------------------------------
- * RST/Reset   RST          9             5         D9         RESET/ICSP-5     RST
- * SPI SS 1    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required **
- * SPI SS 2    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required **
- * SPI MOSI    MOSI         11 / ICSP-4   51        D11        ICSP-4           16
- * SPI MISO    MISO         12 / ICSP-1   50        D12        ICSP-1           14
- * SPI SCK     SCK          13 / ICSP-3   52        D13        ICSP-3           15
- *
- * More pin layouts for other boards can be found here: https://github.com/miguelbalboa/rfid#pin-layout
- *
- */
-
 #include <SPI.h>
 #include <MFRC522.h>
 
@@ -40,9 +9,7 @@
 #define green_LED_PIN       A5   
 
 #define NR_OF_READERS   3
-
-#define NUM_ITEMS       3   //set number of tracked items
-
+#define NUM_ITEMS       7   //set number of tracked items
 
 byte ssPins[] = {SS_1_PIN, SS_2_PIN, SS_3_PIN};
 
@@ -62,7 +29,11 @@ itemID items[NUM_ITEMS] =
 {
   {{0x5A, 0xF0, 0x93, 0xBB}, 255, "Red Lego"},
   {{0x4A, 0xF0, 0x93, 0xBB}, 255, "Pill Bottle"},
-  {{0x3A, 0xF0, 0x93, 0xBB}, 255, "Black Box"}
+  {{0x3A, 0xF0, 0x93, 0xBB}, 255, "Black Box"},
+  {{0x1A, 0x17, 0x93, 0xBB}, 255, "Light Bulb"},
+  {{0xCA, 0x16, 0x93, 0xBB}, 255, "Glue Bottle"},
+  {{0xFA, 0x16, 0x93, 0xBB}, 255, "Epi Pen"},
+  {{0xEA, 0x16, 0x93, 0xBB}, 255, "Toilet Paper"},
 };
 
 //set checking variables
@@ -82,7 +53,6 @@ void setup() {
 
   SPI.begin();        // Init SPI bus
 
-  
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {    
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN); // Init each MFRC522 card
 
@@ -109,6 +79,8 @@ void loop() {
     // Look for new cards
 
     if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
+
+    // dump_byte_array(mfrc522[reader].uid.uidByte, mfrc522[reader].uid.size); // print UID
     
     tagRead = true; //track if a tag has been read to compare to foundItem status
 
@@ -154,7 +126,6 @@ void loop() {
   {
     serialControl();
   }
-
 }
 
 /**
@@ -197,7 +168,6 @@ void processFoundItem()
 
     blinkLED(red_LED_PIN, 3, 600, 200);
   }
-  
 }
 
 /**
@@ -247,13 +217,38 @@ void printInventory()
       Serial.print(items[itemNumber].itemLocation);
       Serial.println();
     }
+  }
+}
 
+//list contents of selected container
+void printContainerContents(uint8_t containerNumber)
+{
+  uint8_t containerTotal = 0;
+  String containerContents = "";
+
+  Serial.println();
+  for (uint8_t itemNumber = 0; itemNumber < NUM_ITEMS; itemNumber++)
+  {
+    if (items[itemNumber].itemLocation == containerNumber)
+    {
+      containerTotal ++;
+      containerContents += items[itemNumber].itemName;
+      containerContents += "     ";
+    } 
   }
 
+  Serial.print("Container ");
+  Serial.print(containerNumber);
+  Serial.print(" has ");
+  Serial.print(containerTotal);
+  containerTotal == 1 ? (Serial.print(" item in it.")) : (Serial.print(" items in it."));
+  Serial.println();
+  Serial.print(containerContents);
+  Serial.println();
 }
 
 /**
- * resets inventory location to 255
+ * resets inventory location for all items to 255
  */
  void resetInventory()
  {
@@ -272,24 +267,30 @@ void printInventory()
  {
     serialMessage = Serial.read();
 
-    if(serialMessage == 'p')
+    switch(serialMessage)
     {
-      printStruct();
-    } 
-    
-    if (serialMessage == 'i')
-    {
-      printInventory();
-    }
-
-    if (serialMessage == 'r')
-    {
-      resetInventory();
-    }
-
-    if (serialMessage == 'R')
-    {
-       NVIC_SystemReset(); //system reset
+      case 'p':
+        printStruct();
+        break;
+      case 'i':
+        printInventory();
+        break;
+      case 'r':
+        resetInventory();
+        break;
+      case 'R':
+        NVIC_SystemReset(); //system reset
+        break;
+      case '0':
+        printContainerContents(0);
+        break;
+      case '1':
+        printContainerContents(1);
+        break;
+      case '2':
+        printContainerContents(2);
+        break;
+      
     }
  }
 
@@ -312,10 +313,10 @@ void blinkLED(uint8_t ledPin, uint8_t times, unsigned long timeOn, unsigned long
  */
 void dump_byte_array(byte *buffer, byte bufferSize) {
   for (byte i = 0; i < bufferSize; i++) {
-    // Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-    // Serial.print(buffer[i], HEX);
+    Serial.print(buffer[i] < 0x10 ? " 0" : " ");
     Serial.print(buffer[i], HEX);
-    Serial.print(" ");
+    // Serial.print(buffer[i], HEX);
+    // Serial.print(" ");
   }
 }
 
