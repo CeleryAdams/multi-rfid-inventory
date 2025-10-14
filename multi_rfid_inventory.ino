@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
 
-#define RST_PIN             9          // Configurable, see typical pin layout above
+#define RST_PIN             9          
 #define SS_1_PIN            7         
 #define SS_2_PIN            8          
 #define SS_3_PIN            10
@@ -108,8 +108,8 @@ void loop() {
       mfrc522[reader].PICC_HaltA();
       // Stop encryption on PCD
       mfrc522[reader].PCD_StopCrypto1();
-    } //if (mfrc522[reader].PICC_IsNewC
-  } //for(uint8_t reader
+    } 
+  } 
 
   if(tagRead == true && itemFound == false)
   {
